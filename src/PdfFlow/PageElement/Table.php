@@ -2,77 +2,90 @@
 
 namespace PdfFlow\PageElement;
 
-class Table
-{
+class Table extends \PdfFlow\PageElement {
+
 	protected $columns = [];
-	protected $headerstyles = [ 'fillcolor' => [234, 4, 77], ];
-	protected $cellstyles = [ ];
+	protected $headerstyles = [ 'fillcolor' => [128, 128, 128], 'textcolor' => [255, 255, 255]];
+	protected $cellstyles = [ 'textcolor' => [0, 0, 0], 'drawcolor' => 100];
 	protected $rows = [];
-	protected $lh = 8;
-	
+	protected $renderHeader = true;
+
+	function setCellStyle($attr, $val) {
+		$this->cellstyles[$attr] = $val;
+	}
+
+	function setHeaderStyle($attr, $val) {
+		$this->headerstyles[$attr] = $val;
+	}
+
+	function setRenderHeader($f) {
+		$this->renderHeader = $f;
+	}
+
 	function getElements($pdf) {
 		$elements = [];
 		$cx = $this->x;
-		$y = $this->y;
-		$cols = $this->columns;
+		$posY = $this->y;
+		if (is_string($posY)) {
 
-		foreach ($cols as $i => $col) {
-			
-			if (!isset($col['align'])) {
-				$cols[$i]['align'] = "L";
+			if (substr($posY, 0, 1) == '-') {
+				$y = -1 * intval(substr($posY, 1));
 			}
-			if (!isset($col['w'])) {
-				$maxw = -1000;
-				foreach ($this->rows as $row) {
-					$cw = $pdf->GetStringWidth($row[$i]);
-					if ($cw > $maxw) {
-						$maxw = $cw;
-					}
-				}
-				$cols[$i]['w'] = $maxw;
+			if (substr($posY, 0, 1) == '+') {
+				$y = intval(substr($posY, 1));
 			}
-			$element=['type' => 'cell', 'border' => 'TLR', 'textcolor' => [255, 255, 255], 'y' => $y, 'x' => $cx, 'h' => $this->lh, 'w' => $cols[$i]['w'], 'txt' => $cols[$i]['label']];
-			$element=  array_merge($element, $this->parseStyles($this->headerstyles));
-			$elements[] =$element;
-			
-			$cx+=$cols[$i]['w'];
-			$this->h+=$element['h'];
+			$y = $pdf->GetY() + $y;
 		}
-		$y+=$element['h'];			
+		else {
+			$y = $posY;
+		
+			
+		}
+		$this->setColumnWidths($pdf);
+		$cols = $this->columns;
+		if ($this->renderHeader) {
+			foreach ($cols as $i => $col) {
+
+				$opts = $col['opts'];
+				$opts+=$this->headerstyles;
+
+				$border = isset($opts['border']) ? $opts['border'] : 'BTLR';
+				$align = isset($opts['align']) ? $opts['align'] : 'L';
+				$element = ['type' => 'cell', 'y' => $y, 'x' => $cx, 'border' => $border,
+					'fill' => 1,
+					'align' => $align,
+					'h' => $this->lh, 'w' => $opts['w'], 'txt' => $cols[$i]['txt'], 'opts' => $opts];
+
+				$elements[] = $element;
+
+				$cx+=$opts['w'];
+				$this->h+=$element['h'];
+			}
+		
+			$y+=$element['h'];
+		}
+
 		foreach ($this->rows as $row) {
 			$cx = $this->x;
-			$h=$this->lh;
-			
-			$ccol = 0;
+			$h = $this->lh;
+
 			foreach ($cols as $i => $col) {
-				$txt = $row[$i];
-				if($txt instanceof \Template\ItemBuilder){
-					$txt->setX($cx);
-					$txt->setY($y);
-					foreach($txt->getElements($pdf) as $el){
-						$elements[]=$el;
-					}
-					$h=$txt->getH();
-					$row[$i]='';
-					
-				}
-				$cx+=$cols[$i]['w'];
-			}
-			
-			$cx = $this->x;
-			foreach ($cols as $i => $col) {
-				$txt = $row[$i];
+				$opts = array_merge($col['opts'],$row['opts']);
+				$opts+=$this->cellstyles;
+				$txt = isset($row['data'][$i])?$row['data'][$i]:'';
+				$border = isset($opts['border']) ? $opts['border'] : 'BLR';
+				$align = isset($opts['align']) ? $opts['align'] : 'L';
 				$element = [
 
-					'type' => 'cell', 'y' => $y, 'x' => $cx, 'w' => $cols[$i]['w'], 'txt' => $txt, 'h' => $h, 'drawcolor' => 100,
-					'align' => $cols[$i]['align'],
-					'border' => $ccol < count($cols) - 1 ? 'BL' : 'LBR',
+					'type' => 'cell', 'y' => $y, 'x' => $cx, 'w' => $opts['w'], 'txt' => $txt, 'h' => $h,
+					'border' => $border,
+					'align' => $align,
+					'fill' => isset($opts['fillcolor']) ? 1 : 0,
+					'opts' => $opts
 				];
-				$element=  array_merge($element,$this->cellstyles);
-				$elements[]=$element;
-				
-				$cx+=$cols[$i]['w'];
-				$ccol+=1;
+				$elements[] = $element;
+
+				$cx+= $opts['w'];
 			}
 			$y+=$h;
 			$this->h+=$element['h'];
@@ -80,12 +93,40 @@ class Table
 		return $elements;
 	}
 
-	function addColumn($label, $id, $w = false, $opts = []) {
-		$this->columns[$id] = array_merge(['label' => $label, 'w' => $w], $opts);
+	function setColumnWidths($pdf) {
+		foreach ($this->columns as $i => $col) {
+
+			if (!isset($col['opts']['w'])) {
+				$maxw = -1000;
+				foreach ($this->rows as $row) {
+					$cw = $pdf->GetStringWidth($row[$i]);
+					if ($cw > $maxw) {
+						$maxw = $cw;
+					}
+				}
+				$this->columns[$i]['opts']['w'] = $maxw;
+			}
+		}
 	}
 
-	function addRow($data) {
-		$this->rows[] = $data;
+	function addColumn($label, $id, $w = false, $opts = []) {
+		if (!isset($opts['w'])) {
+			$opts['w'] = $w;
+		}
+		$col = ['opts' => $opts, 'txt' => $label];
+		$this->columns[$id] = $col;
 	}
-	
+
+	function addRow($data,$opts=[]) {
+		$this->rows[] = ['data'=>$data,'opts'=>$opts];
+	}
+
+	function setRows($data) {
+		$this->rows = $data;
+	}
+
+	function rowCount() {
+		return count($this->rows);
+	}
+
 }

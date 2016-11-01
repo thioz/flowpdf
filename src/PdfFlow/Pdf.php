@@ -1,32 +1,40 @@
 <?php
 namespace PdfFlow;
 
-class Pdf extends \FPDF{
-	protected $prevFontSize;
-	
-	function getFont(){
-		return $this->FontFamily;
-	}
 
-	function getFontSize(){
-		return $this->FontSize;
-	}
 
-	function getPrevFontSize(){
-		return $this->prevFontSize;
+class Pdf {
+	protected $pages=[];
+	protected $renderer;
+	public function __construct() {
+		
 	}
 	
-	public function SetFontSize($size) {
-		$this->prevFontSize = $this->FontSizePt;
-		parent::SetFontSize($size);
-	}
-	
-	public function SetFont($family, $style = '', $size = 0) {
- 
-		if($size){
- 
-			$this->prevFontSize=$size;
+	function addPage($page=null){
+		if(!$page){
+			$page = new Page();
+			
 		}
-		parent::SetFont($family, $style, $size);
+		$this->pages[] = $page;
+		return $page;
 	}
+	
+	function newPdf(){
+		$pdf=new PdfDoc();
+		$pdf->SetFont('arial', '', 10);
+		return $pdf;
+	}
+	
+	function render(){
+		$pdf=$this->newPdf();
+		$renderer=new PdfRenderer($pdf);
+		foreach($this->pages as $page){
+			$pdf->AddPage();
+			foreach($page->elements() as $element){
+				$renderer->render($element);
+			}
+		}
+		return $pdf;
+	}
+	
 }

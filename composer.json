@@ -1,0 +1,19 @@
+{
+	"require": {
+		"dompdf/dompdf": "^0.7.0"
+
+	},
+	"repositories": [
+		{
+			"type": "vcs",
+			"url": "git@github.com:tecnickcom/tc-lib-pdf.git"
+		}
+	],
+	"autoload":{
+		"classmap": ["lib/"],
+		"psr-4":{
+			"Template\\":"vendor/srcr/template/src/Template",
+			"PdfFlow\\":"src/PdfFlow"
+		}
+	}
+}

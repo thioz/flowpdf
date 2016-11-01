@@ -1,11 +1,12 @@
 <?php
 namespace PdfFlow;
 
+
 class PdfRenderer {
 
 	/**
 	 *
-	 * @var FPDF
+	 * @var PdfDoc
 	 */
 	protected $pdf;
 
@@ -14,31 +15,53 @@ class PdfRenderer {
 	}
 
 	function render($element) {
-		$type = $element['type'];
+		if($element instanceof PageElement){
+			foreach($element->getElements($this->pdf) as $item){
+				$this->renderItem($item);
+			}
+		}
+		return $this->pdf;
+	}
+	
+	function renderItem($item){
+		$type = $item['type'];
 		$method = 'render' . ucfirst($type);
 		if (method_exists($this, $method)) {
-			call_user_func([$this, $method], $element);
+			call_user_func([$this, $method], $item);
 		}
+		
 	}
 
 	function renderCell($options) {
-		$options+=[
+		$opts=$options['opts'];
+		$opts+=[
 			'border' => 0,
 			'textcolor' => 0,
-			'align' => isset($options['align']) ? $options['align'] : 'L',
-			'fill' => isset($options['fillcolor']) ? 1 : 0,
-			'h' => isset($options['h']) ? $options['h'] : $this->pdf->getFontSize(),
-			'w' => isset($options['w']) ? $options['w'] : 10,
+			'align' => isset($opts['align']) ? $opts['align'] : 'L',
+			'fill' => isset($opts['fillcolor']) ? 1 : 0,
 		];
+		if(isset($options['x'])){
+			$this->pdf->SetX($options['x']);
+		}
+		
+		if(isset($options['y'])){
 
-		foreach ($options as $opt => $optval) {
+		 
+			$this->pdf->SetY($options['y'],false);
+		}
+	 
+		foreach ($opts as $opt => $optval) {
 			$method = 'renderOption' . ucfirst($opt);
 			if (method_exists($this, $method)) {
-				call_user_func([$this, $method], $optval, $options);
+				call_user_func([$this, $method], $optval, $opts);
 			}
 		}
 
 		$cellopts = $options;
+		if(!isset($cellopts['w']) || $cellopts['w']==false){
+			$cellopts['w'] = $this->pdf->GetStringWidth($cellopts['txt'].' ');
+		}
+		 
 		$this->pdf->Cell($cellopts['w'], $cellopts['h'], $cellopts['txt'], $cellopts['border'], 0, $cellopts['align'], $cellopts['fill']);
 	}
 
@@ -53,16 +76,25 @@ class PdfRenderer {
 			}
 		}
 
-		$this->pdf->Image($options['file']);
+		$this->pdf->Image($options['file'],$options['x'],$options['y'],$options['w'],$options['h']);
 	}
 
 	function renderOptionFillcolor($val, $opts) {
+		if($val instanceof \Closure){
+			$val=$val();
+		}
+		if (!is_array($val)) {
+			$val = [$val, $val, $val];
+		}
 		$this->pdf->SetFillColor($val[0], $val[1], $val[2]);
 	}
 
 	function renderOptionFont($val, $opts) {
-
-		$this->pdf->SetFont($val);
+		$style=isset($opts['fontstyle'])?$opts['fontstyle']:'';
+			if(!$this->pdf->hasFont($val,$style)){
+			$this->pdf->AddFont($val,$style);
+		}
+		$this->pdf->SetFont($val,$style);
 	}
 
 	function renderOptionFontsize($val, $opts) {
@@ -71,7 +103,12 @@ class PdfRenderer {
 	}
 
 	function renderOptionFontstyle($val, $opts) {
-		$fam = isset($opts['font']) ? $opts['font'] : 'Arial';
+		$fam = $this->pdf->getCurrentFont();
+	
+			if(!$this->pdf->hasFont($fam,$val)){
+	
+			$this->pdf->AddFont($fam,$val);
+		}
 		$this->pdf->SetFont($fam, $val);
 	}
 
@@ -94,39 +131,8 @@ class PdfRenderer {
 	}
 
 	function renderOptionY($val, $opts) {
-		$this->pdf->SetY($val, false);
+		$this->pdf->SetY($val,false);
 	}
 
 }
 
-class EzPdf extends FPDF {
-
-	protected $prevFontSize;
-
-	function getFont() {
-		return $this->FontFamily;
-	}
-
-	function getFontSize() {
-		return $this->FontSize;
-	}
-
-	function getPrevFontSize() {
-		return $this->prevFontSize;
-	}
-
-	public function SetFontSize($size) {
-		$this->prevFontSize = $this->FontSizePt;
-		parent::SetFontSize($size);
-	}
-
-	public function SetFont($family, $style = '', $size = 0) {
-
-		if ($size) {
-
-			$this->prevFontSize = $size;
-		}
-		parent::SetFont($family, $style, $size);
-	}
-
-}
