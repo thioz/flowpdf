@@ -31,6 +31,11 @@ class PageElement {
 		return $this->h;
 	}
 
+	function setPosition($x, $y) {
+		$this->x = $x;
+		$this->y = $y;
+	}
+
 	function setX($x) {
 		$this->x = $x;
 	}
@@ -42,6 +47,7 @@ class PageElement {
 	function setH($h) {
 		$this->h = $h;
 	}
+
 	function setW($h) {
 		$this->w = $h;
 	}
