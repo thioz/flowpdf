@@ -1,8 +1,8 @@
 <?php
 
-namespace PdfFlow\PageElement;
+namespace FlowPdf\PageElement;
 
-class Image extends \PdfFlow\PageElement {
+class Image extends \FlowPdf\PageElement {
 
 	protected $lh = 5;
 	protected $file;

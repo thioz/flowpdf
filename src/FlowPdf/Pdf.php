@@ -1,5 +1,5 @@
 <?php
-namespace PdfFlow;
+namespace FlowPdf;
 
 
 
@@ -27,14 +27,23 @@ class Pdf {
 	
 	function render(){
 		$pdf=$this->newPdf();
-		$renderer=new PdfRenderer($pdf);
+		$renderer = $this->newRenderer($pdf);
 		foreach($this->pages as $page){
 			$pdf->AddPage();
 			foreach($page->elements() as $element){
-				$renderer->render($element);
+				$renderer->renderItem($element);
 			}
 		}
 		return $pdf;
+	}
+	
+	/**
+	 * 
+	 * @param type $pdf
+	 * @return \FlowPdf\PdfRenderer
+	 */
+	function newRenderer($pdf){
+		return new PdfRenderer($pdf);		
 	}
 	
 }

@@ -1,5 +1,5 @@
 <?php
-namespace PdfFlow;
+namespace FlowPdf;
 
 
 class PdfRenderer {
@@ -26,13 +26,21 @@ class PdfRenderer {
 	function renderItem($item){
 		$type = $item['type'];
 		$method = 'render' . ucfirst($type);
+ 
 		if (method_exists($this, $method)) {
 			call_user_func([$this, $method], $item);
 		}
+ 
 		
 	}
 
 	function renderCell($options) {
+		$options+=[
+			'border' => 0,
+			'align' => isset($opts['align']) ? $opts['align'] : 'L',
+			'fill' => isset($opts['fillcolor']) ? 1 : 0,
+			
+		];
 		$opts=$options['opts'];
 		$opts+=[
 			'border' => 0,

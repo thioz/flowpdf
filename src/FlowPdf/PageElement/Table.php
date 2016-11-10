@@ -1,8 +1,8 @@
 <?php
 
-namespace PdfFlow\PageElement;
+namespace FlowPdf\PageElement;
 
-class Table extends \PdfFlow\PageElement {
+class Table extends \FlowPdf\PageElement {
 
 	protected $columns = [];
 	protected $headerstyles = [ 'fillcolor' => [128, 128, 128], 'textcolor' => [255, 255, 255]];

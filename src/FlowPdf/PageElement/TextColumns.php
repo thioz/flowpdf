@@ -1,8 +1,8 @@
 <?php
 
-namespace PdfFlow\PageElement;
+namespace FlowPdf\PageElement;
 
-class TextColumns extends \PdfFlow\PageElement {
+class TextColumns extends \FlowPdf\PageElement {
 
 	protected $columns = [];
 	protected $numcols = 1;

@@ -1,6 +1,6 @@
 <?php
 
-namespace PdfFlow;
+namespace FlowPdf;
 
 class PageElement {
 
